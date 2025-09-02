@@ -61,7 +61,7 @@
   class Garage extends Phaser.Scene {
     constructor() { super('Garage'); }
     create() {
-      showOverlay('none');
+      showOverlay('back');
       this.add.text(WIDTH/2, 40, 'گاراژ – حداکثر ۳ خودرو انتخاب کنید', { fontSize: '28px', color: '#ffffff' }).setOrigin(0.5).setAlign('center');
 
       const stored = window.StorageHelpers.getTeam();
@@ -132,7 +132,7 @@
   class RaceSetup extends Phaser.Scene {
     constructor() { super('RaceSetup'); }
     create() {
-      showOverlay('none');
+      showOverlay('back');
       this.add.text(WIDTH/2, 50, 'آماده‌سازی مسابقه – مسیر: آسفالت', { fontSize: '28px', color: '#ffffff' }).setOrigin(0.5);
       const teamIdx = window.StorageHelpers.getTeam();
       const cars = teamIdx.map(i => window.Cars[i]).filter(Boolean);
@@ -164,7 +164,7 @@
   class Race extends Phaser.Scene {
     constructor() { super('Race'); }
     create() {
-      showOverlay('none');
+      showOverlay('back');
       this.cameras.main.setBackgroundColor('#0f1226');
       const margin = 100;
       const startX = 120;
