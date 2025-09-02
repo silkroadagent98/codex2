@@ -172,34 +172,56 @@
 
       this.add.text(WIDTH/2, 40, 'مسابقه – آسفالت', { fontSize: '28px', color: '#ffffff' }).setOrigin(0.5);
 
-      const idxs = window.StorageHelpers.getTeam();
-      const cars = idxs.map(i => window.Cars[i]).filter(Boolean).slice(0,3);
-      // If fewer than 3, pad with placeholders
-      while (cars.length < 3) {
-        cars.push({ name: '—', spd: 0, acc: 0, ctl: 0, hdl: 0 });
-      }
+      const allCars = window.Cars;
+      const playerIdxs = window.StorageHelpers.getTeam();
+      const playerCars = playerIdxs.map(i => allCars[i]).filter(Boolean).slice(0,3);
+      while (playerCars.length < 3) playerCars.push({ name: '—', spd: 0, acc: 0, ctl: 0, hdl: 0 });
 
-      const scores = cars.map(c => (c.spd + c.acc + c.ctl + c.hdl));
-      const maxScore = Math.max(1, ...scores);
-      const laneY = [HEIGHT/2 - 120, HEIGHT/2, HEIGHT/2 + 120];
+      function pickRandomDistinct(count, maxExclusive) {
+        const bag = Array.from({ length: maxExclusive }, (_, i) => i);
+        for (let i = bag.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          const t = bag[i]; bag[i] = bag[j]; bag[j] = t;
+        }
+        return bag.slice(0, count);
+      }
+      const botIdxs = pickRandomDistinct(3, allCars.length);
+      const botCars = botIdxs.map(i => allCars[i]);
+
+      const playerScores = playerCars.map(c => (c.spd + c.acc + c.ctl + c.hdl));
+      const botScores = botCars.map(c => (c.spd + c.acc + c.ctl + c.hdl));
+      const maxScore = Math.max(1, ...playerScores, ...botScores);
+
+      const laneY = [HEIGHT/2 - 180, HEIGHT/2 - 120, HEIGHT/2 - 60, HEIGHT/2 + 60, HEIGHT/2 + 120, HEIGHT/2 + 180];
+
+      // Labels for teams
+      this.add.text(WIDTH/2, HEIGHT/2 - 220, 'بازیکن', { fontSize: '20px', color: '#aeeaff' }).setOrigin(0.5);
+      this.add.text(WIDTH/2, HEIGHT/2 + 220, 'ربات', { fontSize: '20px', color: '#ffd9a3' }).setOrigin(0.5);
 
       // Draw lanes and finish line
-      laneY.forEach(y => this.add.rectangle(WIDTH/2, y, WIDTH - margin*0.6, 4, 0xffffff, 0.15));
-      this.add.rectangle(finishX, HEIGHT/2, 6, 320, 0xffd700, 0.8);
+      laneY.forEach(y => this.add.rectangle(WIDTH/2, y, WIDTH - margin*0.6, 2, 0xffffff, 0.15));
+      this.add.rectangle(finishX, HEIGHT/2, 6, 420, 0xffd700, 0.8);
       this.add.text(finishX + 24, HEIGHT/2, 'پایان', { fontSize: '18px', color: '#ffffff' }).setOrigin(0.5);
 
-      const runners = cars.map((c, i) => {
-        const color = [0x2e8b57, 0x1e90ff, 0xff6a00][i];
-        const bar = this.add.rectangle(startX, laneY[i], 80, 26, color, 0.95).setOrigin(0, 0.5).setStrokeStyle(2, 0xffffff, 0.2);
-        const label = this.add.text(startX - 10, laneY[i], c.name, { fontSize: '18px', color: '#ffffff' }).setOrigin(1, 0.5);
-        return { bar, label };
+      const colorsPlayer = [0x2e8b57, 0x1e90ff, 0xff6a00];
+      const colorsBot = [0xff3b3b, 0xbf5fff, 0xffc107];
+
+      const runners = [];
+      playerCars.forEach((c, i) => {
+        const bar = this.add.rectangle(startX, laneY[i], 80, 24, colorsPlayer[i], 0.95).setOrigin(0, 0.5).setStrokeStyle(2, 0xffffff, 0.2);
+        const label = this.add.text(startX - 10, laneY[i], c.name, { fontSize: '16px', color: '#ffffff' }).setOrigin(1, 0.5);
+        runners.push({ bar, score: playerScores[i] });
+      });
+      botCars.forEach((c, i) => {
+        const bar = this.add.rectangle(startX, laneY[3 + i], 80, 24, colorsBot[i], 0.95).setOrigin(0, 0.5).setStrokeStyle(2, 0xffffff, 0.2);
+        const label = this.add.text(startX - 10, laneY[3 + i], c.name, { fontSize: '16px', color: '#ffffff' }).setOrigin(1, 0.5);
+        runners.push({ bar, score: botScores[i] });
       });
 
       // Deterministic time to finish for each car based on score
       const distance = finishX - startX - 80;
       const baseTime = 9000; // ms for a car with score == 1 to finish
-      const times = scores.map(s => baseTime * (maxScore / Math.max(1, s)));
-      const winnerIndex = times.indexOf(Math.min(...times));
+      const times = runners.map(r => baseTime * (maxScore / Math.max(1, r.score)));
 
       this.elapsed = 0;
       this.update = (time, delta) => {
@@ -211,12 +233,13 @@
         });
         if (!this.resultShown && this.elapsed >= Math.max(...times)) {
           this.resultShown = true;
-          const winnerName = cars[winnerIndex].name;
-          const scoreText = `نتیجه: ${winnerName} برنده شد!\nپاداش: +1 کارت`;
-          const panel = this.add.rectangle(WIDTH/2, HEIGHT/2, 560, 180, 0x111633, 0.95).setStrokeStyle(3, 0xffffff, 0.2).setDepth(10);
-          this.add.text(WIDTH/2, HEIGHT/2 - 20, scoreText, { fontSize: '24px', color: '#ffffff', align: 'center' }).setOrigin(0.5).setDepth(11).setAlign('center');
-          const btn = createTextButton(this, WIDTH/2, HEIGHT/2 + 50, 220, 50, 'بازگشت به منو', () => {
-            // Fake reward progression
+          const playerSum = playerScores.reduce((a,b)=>a+b,0);
+          const botSum = botScores.reduce((a,b)=>a+b,0);
+          const outcome = playerSum > botSum ? 'بازیکن' : (playerSum < botSum ? 'ربات' : 'مساوی');
+          const scoreText = `نتیجه: ${outcome}${outcome==='مساوی'?'':' برنده شد!'}\nامتیاز بازیکن: ${playerSum} | امتیاز ربات: ${botSum}\nپاداش: +1 کارت`;
+          const panel = this.add.rectangle(WIDTH/2, HEIGHT/2, 620, 200, 0x111633, 0.95).setStrokeStyle(3, 0xffffff, 0.2).setDepth(10);
+          this.add.text(WIDTH/2, HEIGHT/2 - 30, scoreText, { fontSize: '22px', color: '#ffffff', align: 'center' }).setOrigin(0.5).setDepth(11).setAlign('center');
+          const btn = createTextButton(this, WIDTH/2, HEIGHT/2 + 60, 220, 50, 'بازگشت به منو', () => {
             const prog = window.StorageHelpers.loadProgress();
             prog.cards = (prog.cards || 0) + 1;
             window.StorageHelpers.saveProgress(prog);
