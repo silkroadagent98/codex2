@@ -1,4 +1,58 @@
 <!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Top Drives IR – MVP</title>
+    <style>
+      html, body { margin: 0; padding: 0; background: #0f1226; font-family: sans-serif; }
+      #game-root { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+      #ui-overlay { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; z-index: 10; }
+      .ui-btn { padding: 10px 16px; background: #ffffff22; color: #fff; border: 1px solid #ffffff55; border-radius: 6px; cursor: pointer; text-align: center; min-width: 96px; }
+      .ui-btn:hover { background: #ffffff33; }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="game-root">
+      <div id="ui-overlay">
+        <button class="ui-btn" id="btn-start">شروع</button>
+        <button class="ui-btn" id="btn-garage">گاراژ</button>
+        <button class="ui-btn" id="btn-back">بازگشت</button>
+      </div>
+      <!-- Phaser will inject the canvas into this container -->
+      <div id="game-container"></div>
+    </div>
+
+    <!-- Phaser 3 from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
+    <!-- Game modules -->
+    <script src="./js/data.js"></script>
+    <script src="./js/storage.js"></script>
+    <script src="./js/main.js"></script>
+
+    <script>
+      // Wire overlay buttons to scene navigation when game bootstraps
+      (function() {
+        const btnStart = document.getElementById('btn-start');
+        const btnGarage = document.getElementById('btn-garage');
+        const btnBack = document.getElementById('btn-back');
+
+        function safeCall(fnName) {
+          if (window.TopDrivesIR && typeof window.TopDrivesIR[fnName] === 'function') {
+            window.TopDrivesIR[fnName]();
+          }
+        }
+
+        btnStart.addEventListener('click', function() { safeCall('goRaceSetup'); });
+        btnGarage.addEventListener('click', function() { safeCall('goGarage'); });
+        btnBack.addEventListener('click', function() { safeCall('goMainMenu'); });
+      })();
+    </script>
+  </body>
+  </html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
